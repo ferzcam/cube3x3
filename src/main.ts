@@ -61,7 +61,7 @@ function initSolveView() {
       <div class="panel">
         <div class="field">
           <label for="scramble-input">Scramble</label>
-          <textarea id="scramble-input" rows="2" spellcheck="false"
+          <textarea id="scramble-input" rows="3" spellcheck="false"
             placeholder="e.g. R U R' U' or generate one"></textarea>
         </div>
         <div class="btn-row">
