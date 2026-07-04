@@ -81,6 +81,7 @@ function initSolveView() {
   const status = el.querySelector('#solve-status') as HTMLElement
   const out = el.querySelector('#solution-out') as HTMLElement
   let applied = ''
+  let scrambled = false // is the cube currently showing the `applied` scramble?
   const setStatus = (t: string) => (status.textContent = t)
 
   function applyScramble(animate: boolean) {
@@ -89,6 +90,7 @@ function initSolveView() {
     if (animate) cubeSolve!.queueMoves(moves)
     else cubeSolve!.applyInstant(moves)
     applied = input.value.trim()
+    scrambled = true
     out.textContent = ''
   }
 
@@ -109,7 +111,10 @@ function initSolveView() {
       setStatus('Enter or generate a scramble first.')
       return
     }
-    if (scr !== applied) applyScramble(false) // jump cube to the scrambled state
+    // Ensure the cube is in the scrambled state before replaying the solution —
+    // e.g. after a previous solve it's already solved, so re-scramble first.
+    if (scr !== applied || !scrambled) applyScramble(false)
+    scrambled = false // the queued solution will leave the cube solved
     setStatus('Solving…')
     try {
       const solution = await solver.solve(scr)
