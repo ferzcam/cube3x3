@@ -57,4 +57,11 @@ export class Solver {
     const r = await this.request({ type: 'scramble' })
     return r.scramble as string
   }
+
+  /** Solve from a 54-char URFDLB facelet string (the scanned-cube path).
+   *  Rejects (with a reason) if the facelets aren't a solvable cube. */
+  async solveFacelets(facelets: string): Promise<string> {
+    const r = await this.request({ type: 'solveFacelets', facelets })
+    return r.solution as string
+  }
 }

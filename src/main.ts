@@ -3,6 +3,7 @@ import { Cube3D } from './render/cube3d.ts'
 import { randomScramble, parseMoves } from './core/cube.ts'
 import { Solver } from './solver/index.ts'
 import { mountTimer } from './timer/timerView.ts'
+import { mountScan } from './scan/scanView.ts'
 
 type ViewName = 'cube' | 'solve' | 'scan' | 'timer'
 
@@ -159,11 +160,14 @@ function ensureTimer() {
   }
 }
 
-// --- Placeholder views -------------------------------------------------------
-function placeholder(name: ViewName, title: string, note: string) {
-  views[name].innerHTML = `<div class="placeholder"><h2>${title}</h2><p>${note}</p></div>`
+// --- Scan view ---------------------------------------------------------------
+let scanInited = false
+function ensureScan() {
+  if (!scanInited) {
+    mountScan(views.scan, solver)
+    scanInited = true
+  }
 }
-placeholder('scan', 'Scan', 'Point your camera at each face to read the colours. (Coming later.)')
 
 // --- Tab routing -------------------------------------------------------------
 function show(name: ViewName) {
@@ -174,6 +178,7 @@ function show(name: ViewName) {
   }
   if (name === 'solve') ensureSolve()
   if (name === 'timer') ensureTimer()
+  if (name === 'scan') ensureScan()
   // Only run the render loop for the visible cube.
   if (name === 'cube') {
     cubeSolve?.pause()
