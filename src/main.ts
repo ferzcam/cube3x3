@@ -111,9 +111,14 @@ function initSolveView() {
       setStatus('Enter or generate a scramble first.')
       return
     }
-    // Ensure the cube is in the scrambled state before replaying the solution —
-    // e.g. after a previous solve it's already solved, so re-scramble first.
-    if (scr !== applied || !scrambled) applyScramble(false)
+    // Already solved this scramble — don't replay the solution onto a solved
+    // cube; prompt for a new scramble instead.
+    if (scr === applied && !scrambled) {
+      setStatus('Cube is already solved — press New scramble (or Apply) to solve again.')
+      return
+    }
+    // A new or edited scramble: set the cube to that scrambled state first.
+    if (scr !== applied) applyScramble(false)
     scrambled = false // the queued solution will leave the cube solved
     setStatus('Solving…')
     try {
