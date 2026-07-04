@@ -337,6 +337,88 @@ body {
   border-color: var(--accent);
 }
 
+/* Step-by-step solution player (over the Scan view) */
+.player-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+.player-overlay .canvas-host {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.player-bar {
+  flex: 0 0 auto;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 0.6rem 0.75rem calc(0.6rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.player-strip {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: thin;
+}
+.player-strip .mv {
+  flex: 0 0 auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.4rem;
+  background: var(--panel-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.player-strip .mv.done {
+  color: var(--text);
+  opacity: 0.55;
+}
+.player-strip .mv.cur {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.player-controls button {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.player-controls button.step {
+  flex: 1;
+  font-size: 1.2rem;
+}
+.player-controls button:active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.player-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  min-width: 3.5rem;
+  text-align: center;
+  font-weight: 600;
+}
+
 /* Timer view */
 .timer-layout {
   position: absolute;

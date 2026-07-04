@@ -1,5 +1,14 @@
 import type { Solver } from '../solver/index.ts'
-import { FACE_COLORS, FACES, type Face } from '../core/cube.ts'
+import {
+  FACE_COLORS,
+  FACES,
+  parseMoves,
+  invertMoves,
+  moveToString,
+  type Face,
+  type Move,
+} from '../core/cube.ts'
+import { Cube3D } from '../render/cube3d.ts'
 import { startCamera, stopStream, sampleFace, classify, type RGB } from './camera.ts'
 
 // The Scan view: a manual cube "net" editor plus camera scanning. The net is the
@@ -50,6 +59,18 @@ export function mountScan(el: HTMLElement, solver: Solver): ScanApi {
       <div class="cam-controls">
         <button id="cam-cancel">Cancel</button>
         <button id="cam-capture" class="primary">Capture</button>
+      </div>
+    </div>
+    <div class="player-overlay" id="player-overlay" style="display:none">
+      <div class="canvas-host" id="player-canvas"></div>
+      <div class="player-bar">
+        <div class="player-strip" id="player-strip"></div>
+        <div class="player-controls">
+          <button id="player-back">‹ Back</button>
+          <button id="player-prev" class="step">◀</button>
+          <span id="player-count" class="player-count"></span>
+          <button id="player-next" class="step">▶</button>
+        </div>
       </div>
     </div>`
 
@@ -116,8 +137,10 @@ export function mountScan(el: HTMLElement, solver: Solver): ScanApi {
       if (solution.trim() === '') {
         statusEl.textContent = 'This cube is already solved.'
       } else {
-        statusEl.textContent = `Solution — ${solution.trim().split(/\s+/).length} moves`
+        const moves = parseMoves(solution)
+        statusEl.textContent = `Solution — ${moves.length} moves`
         solutionEl.textContent = solution
+        openPlayer(moves)
       }
     } catch (e) {
       statusEl.textContent = 'Not solvable: ' + (e as Error).message
@@ -181,8 +204,66 @@ export function mountScan(el: HTMLElement, solver: Solver): ScanApi {
     if (document.hidden && stream) closeCamera()
   })
 
+  // --- step-by-step solution player ----------------------------------------
+  const playerOverlay = el.querySelector('#player-overlay') as HTMLElement
+  const playerCanvas = el.querySelector('#player-canvas') as HTMLElement
+  const stripEl = el.querySelector('#player-strip') as HTMLElement
+  const countEl = el.querySelector('#player-count') as HTMLElement
+  let playerCube: Cube3D | null = null
+  let playerMoves: Move[] = []
+  let playerIndex = 0
+
+  function renderStrip() {
+    stripEl.innerHTML = playerMoves
+      .map((m, i) => {
+        const cls = i < playerIndex ? 'done' : i === playerIndex ? 'cur' : ''
+        return `<span class="mv ${cls}">${moveToString(m)}</span>`
+      })
+      .join('')
+    countEl.textContent = `${playerIndex} / ${playerMoves.length}`
+    ;(stripEl.querySelector('.cur') as HTMLElement | null)?.scrollIntoView({
+      block: 'nearest',
+      inline: 'center',
+    })
+  }
+  function openPlayer(moves: Move[]) {
+    playerMoves = moves
+    playerIndex = 0
+    playerOverlay.style.display = 'flex'
+    if (!playerCube) playerCube = new Cube3D(playerCanvas)
+    playerCube.resume()
+    playerCube.reset()
+    playerCube.applyInstant(invertMoves(moves)) // solved → the scanned state
+    playerCube.onShown()
+    renderStrip()
+  }
+  function closePlayer() {
+    playerOverlay.style.display = 'none'
+    playerCube?.pause()
+  }
+  function stepNext() {
+    if (!playerCube || playerCube.isBusy() || playerIndex >= playerMoves.length) return
+    playerCube.queueMoves([playerMoves[playerIndex]])
+    playerIndex++
+    renderStrip()
+  }
+  function stepPrev() {
+    if (!playerCube || playerCube.isBusy() || playerIndex <= 0) return
+    playerIndex--
+    playerCube.queueMoves(invertMoves([playerMoves[playerIndex]]))
+    renderStrip()
+  }
+  el.querySelector('#player-next')!.addEventListener('click', stepNext)
+  el.querySelector('#player-prev')!.addEventListener('click', stepPrev)
+  el.querySelector('#player-back')!.addEventListener('click', closePlayer)
+
   refreshPalette()
   buildNet()
 
-  return { onHide: closeCamera }
+  return {
+    onHide: () => {
+      closeCamera()
+      closePlayer()
+    },
+  }
 }

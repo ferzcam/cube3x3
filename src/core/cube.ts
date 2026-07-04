@@ -42,9 +42,22 @@ export function parseMoves(seq: string): Move[] {
 
 /** Serialise moves back to standard notation, e.g. "R U R' U2". */
 export function stringifyMoves(moves: Move[]): string {
-  return moves
-    .map((m) => m.face + (m.dir === 2 ? '2' : m.dir === -1 ? "'" : ''))
-    .join(' ')
+  return moves.map(moveToString).join(' ')
+}
+
+/** A single move in standard notation, e.g. "R", "U'", "F2". */
+export function moveToString(m: Move): string {
+  return m.face + (m.dir === 2 ? '2' : m.dir === -1 ? "'" : '')
+}
+
+/** The inverse of a move (R↔R', F2↔F2). */
+export function invertMove(m: Move): Move {
+  return { face: m.face, dir: m.dir === 2 ? 2 : m.dir === 1 ? -1 : 1 }
+}
+
+/** The inverse of a sequence: reversed, each move inverted. */
+export function invertMoves(moves: Move[]): Move[] {
+  return moves.slice().reverse().map(invertMove)
 }
 
 export const ALL_FACES: readonly Face[] = ['U', 'D', 'L', 'R', 'F', 'B']
