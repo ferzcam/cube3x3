@@ -2,6 +2,7 @@ import './style.css'
 import { Cube3D } from './render/cube3d.ts'
 import { randomScramble, parseMoves } from './core/cube.ts'
 import { Solver } from './solver/index.ts'
+import { mountTimer } from './timer/timerView.ts'
 
 type ViewName = 'cube' | 'solve' | 'scan' | 'timer'
 
@@ -139,12 +140,20 @@ function ensureSolve() {
   }
 }
 
+// --- Timer view --------------------------------------------------------------
+let timerInited = false
+function ensureTimer() {
+  if (!timerInited) {
+    mountTimer(views.timer, solver)
+    timerInited = true
+  }
+}
+
 // --- Placeholder views -------------------------------------------------------
 function placeholder(name: ViewName, title: string, note: string) {
   views[name].innerHTML = `<div class="placeholder"><h2>${title}</h2><p>${note}</p></div>`
 }
 placeholder('scan', 'Scan', 'Point your camera at each face to read the colours. (Coming later.)')
-placeholder('timer', 'Timer', 'Speedcubing timer with scrambles and stats. (Coming later.)')
 
 // --- Tab routing -------------------------------------------------------------
 function show(name: ViewName) {
@@ -154,6 +163,7 @@ function show(name: ViewName) {
     btn.classList.toggle('active', (btn as HTMLElement).dataset.view === name)
   }
   if (name === 'solve') ensureSolve()
+  if (name === 'timer') ensureTimer()
   // Only run the render loop for the visible cube.
   if (name === 'cube') {
     cubeSolve?.pause()

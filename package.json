@@ -10,7 +10,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "tsx test/roundtrip.ts && tsx test/worker-smoke.ts"
+    "test": "tsx test/roundtrip.ts && tsx test/worker-smoke.ts && tsx test/stats.ts"
   },
   "dependencies": {
     "cube-solver": "^2.4.1",
