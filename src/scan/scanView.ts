@@ -1,39 +1,55 @@
 import type { Solver } from '../solver/index.ts'
 import { FACE_COLORS, FACES, type Face } from '../core/cube.ts'
+import { startCamera, stopStream, sampleFace, classify, type RGB } from './camera.ts'
 
-// The Scan view. For now it's a manual cube "net" editor: tap a colour, then tap
-// stickers to match your physical cube, and Solve. This same net is the
-// correction grid the camera scanner will fill in later (M4b).
+// The Scan view: a manual cube "net" editor plus camera scanning. The net is the
+// single source of truth; the camera fills it and the user corrects by tapping.
 
 const hex = (n: number) => '#' + n.toString(16).padStart(6, '0')
-
-// Placement of each face in the unfolded cross net.
 const NET_AREA: Record<Face, string> = { U: 'U', L: 'L', F: 'F', R: 'R', B: 'B', D: 'D' }
+const FACE_NAME: Record<Face, string> = {
+  U: 'white',
+  D: 'yellow',
+  F: 'green',
+  B: 'blue',
+  R: 'red',
+  L: 'orange',
+}
 
-export function mountScan(el: HTMLElement, solver: Solver) {
-  // Per-face sticker colours (Face letters), in facelet reading order; index 4
-  // is the fixed centre. Start from a solved cube.
+export type ScanApi = { onHide: () => void }
+
+export function mountScan(el: HTMLElement, solver: Solver): ScanApi {
   const faces: Record<Face, Face[]> = {} as Record<Face, Face[]>
   for (const f of FACES) faces[f] = Array(9).fill(f)
-
   let active: Face = 'U'
 
   el.innerHTML = `
     <div class="scan-layout">
       <div class="net" id="net"></div>
       <div class="panel scan-panel">
+        <button id="scan-camera" class="camera-btn">📷 Scan with camera</button>
         <div class="field">
           <label>Paint colour</label>
           <div class="palette" id="palette"></div>
         </div>
         <div class="btn-row">
           <button id="scan-reset">Reset</button>
+          <button id="scan-solve" class="primary">Solve</button>
         </div>
-        <button id="scan-solve" class="primary">Solve</button>
         <div id="scan-status" class="status"></div>
         <div id="scan-solution" class="solution"></div>
-        <p class="hint">Tap a colour, then tap stickers to match your cube. Centres are fixed.
-          Camera scanning comes next.</p>
+        <p class="hint">Tap a colour then tap stickers to edit, or scan with the
+          camera. Centres are fixed. Check the colours before solving.</p>
+      </div>
+    </div>
+    <div class="cam-overlay" id="cam-overlay" style="display:none">
+      <video id="cam-video" playsinline muted></video>
+      <div class="cam-guide"><div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div><div></div></div>
+      <div class="cam-prompt" id="cam-prompt"></div>
+      <div class="cam-controls">
+        <button id="cam-cancel">Cancel</button>
+        <button id="cam-capture" class="primary">Capture</button>
       </div>
     </div>`
 
@@ -48,13 +64,12 @@ export function mountScan(el: HTMLElement, solver: Solver) {
     sw.className = 'swatch'
     sw.style.background = hex(FACE_COLORS[f])
     sw.dataset.face = f
-    sw.title = f
+    sw.title = FACE_NAME[f]
     paletteEl.appendChild(sw)
   }
-  function refreshPalette() {
-    for (const sw of paletteEl.querySelectorAll<HTMLElement>('.swatch')) {
+  const refreshPalette = () => {
+    for (const sw of paletteEl.querySelectorAll<HTMLElement>('.swatch'))
       sw.classList.toggle('active', sw.dataset.face === active)
-    }
   }
   paletteEl.addEventListener('click', (e) => {
     const sw = (e.target as HTMLElement).closest('.swatch') as HTMLElement | null
@@ -85,17 +100,14 @@ export function mountScan(el: HTMLElement, solver: Solver) {
     const st = (e.target as HTMLElement).closest('.sticker') as HTMLElement | null
     if (!st || st.classList.contains('center')) return
     const f = st.dataset.face as Face
-    const i = Number(st.dataset.i)
-    faces[f][i] = active
+    faces[f][Number(st.dataset.i)] = active
     st.style.background = hex(FACE_COLORS[active])
     solutionEl.textContent = ''
     statusEl.textContent = ''
   })
 
   // --- solve ----------------------------------------------------------------
-  function facelets(): string {
-    return FACES.map((f) => faces[f].join('')).join('')
-  }
+  const facelets = () => FACES.map((f) => faces[f].join('')).join('')
   el.querySelector('#scan-solve')!.addEventListener('click', async () => {
     statusEl.textContent = 'Solving…'
     solutionEl.textContent = ''
@@ -118,6 +130,59 @@ export function mountScan(el: HTMLElement, solver: Solver) {
     solutionEl.textContent = ''
   })
 
+  // --- camera ---------------------------------------------------------------
+  const overlay = el.querySelector('#cam-overlay') as HTMLElement
+  const video = el.querySelector('#cam-video') as HTMLVideoElement
+  const promptEl = el.querySelector('#cam-prompt') as HTMLElement
+  let stream: MediaStream | null = null
+  let step = 0
+  const facesRGB = {} as Record<Face, RGB[]>
+
+  function updatePrompt() {
+    const f = FACES[step]
+    promptEl.innerHTML = `Face ${step + 1} of 6 — centre the <b>${FACE_NAME[f]}</b> face in the grid`
+  }
+  function closeCamera() {
+    stopStream(stream)
+    stream = null
+    overlay.style.display = 'none'
+  }
+  async function openCamera() {
+    step = 0
+    overlay.style.display = 'flex'
+    updatePrompt()
+    try {
+      stream = await startCamera(video)
+    } catch (e) {
+      overlay.style.display = 'none'
+      statusEl.textContent = 'Camera unavailable: ' + (e as Error).message
+    }
+  }
+  function capture() {
+    if (!stream) return
+    facesRGB[FACES[step]] = sampleFace(video)
+    step++
+    if (step >= FACES.length) {
+      const classified = classify(facesRGB)
+      for (const f of FACES) faces[f] = classified[f].slice()
+      buildNet()
+      closeCamera()
+      statusEl.textContent = 'Scanned — check the colours, fix any, then Solve.'
+      solutionEl.textContent = ''
+    } else {
+      updatePrompt()
+    }
+  }
+  el.querySelector('#scan-camera')!.addEventListener('click', openCamera)
+  el.querySelector('#cam-capture')!.addEventListener('click', capture)
+  el.querySelector('#cam-cancel')!.addEventListener('click', closeCamera)
+  // Stop the camera if the page is hidden (privacy/battery; iOS lifecycle).
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && stream) closeCamera()
+  })
+
   refreshPalette()
   buildNet()
+
+  return { onHide: closeCamera }
 }

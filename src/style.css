@@ -256,6 +256,87 @@ body {
   }
 }
 
+.camera-btn {
+  appearance: none;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.6rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+/* Camera overlay: fills the view, video with a 3×3 alignment grid. */
+.cam-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cam-overlay video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cam-guide {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(72vw, 72vh);
+  height: min(72vw, 72vh);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  pointer-events: none;
+}
+.cam-guide > div {
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+.cam-prompt {
+  position: absolute;
+  top: calc(1rem + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.6rem;
+  font-size: 0.95rem;
+  text-align: center;
+  max-width: 90%;
+}
+.cam-controls {
+  position: absolute;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.75rem;
+}
+.cam-controls button {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.6rem 1.4rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+.cam-controls button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
 /* Timer view */
 .timer-layout {
   position: absolute;

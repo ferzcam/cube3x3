@@ -3,7 +3,7 @@ import { Cube3D } from './render/cube3d.ts'
 import { randomScramble, parseMoves } from './core/cube.ts'
 import { Solver } from './solver/index.ts'
 import { mountTimer } from './timer/timerView.ts'
-import { mountScan } from './scan/scanView.ts'
+import { mountScan, type ScanApi } from './scan/scanView.ts'
 
 type ViewName = 'cube' | 'solve' | 'scan' | 'timer'
 
@@ -161,12 +161,9 @@ function ensureTimer() {
 }
 
 // --- Scan view ---------------------------------------------------------------
-let scanInited = false
+let scanApi: ScanApi | null = null
 function ensureScan() {
-  if (!scanInited) {
-    mountScan(views.scan, solver)
-    scanInited = true
-  }
+  if (!scanApi) scanApi = mountScan(views.scan, solver)
 }
 
 // --- Tab routing -------------------------------------------------------------
@@ -179,6 +176,7 @@ function show(name: ViewName) {
   if (name === 'solve') ensureSolve()
   if (name === 'timer') ensureTimer()
   if (name === 'scan') ensureScan()
+  else scanApi?.onHide() // stop the camera when leaving Scan
   // Only run the render loop for the visible cube.
   if (name === 'cube') {
     cubeSolve?.pause()
