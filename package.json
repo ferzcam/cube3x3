@@ -1,0 +1,23 @@
+{
+  "name": "cube3x3",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Ad-free 3x3 cube solver, timer, and virtual cube — a personal PWA.",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "three": "^0.171.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.171.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}

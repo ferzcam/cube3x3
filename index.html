@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0f1115" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>3×3 Cube</title>
+  </head>
+  <body>
+    <div id="app">
+      <main id="view"></main>
+      <nav id="tabbar">
+        <button data-view="cube" class="active">Cube</button>
+        <button data-view="solve">Solve</button>
+        <button data-view="scan">Scan</button>
+        <button data-view="timer">Timer</button>
+      </nav>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

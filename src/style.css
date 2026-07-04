@@ -1,0 +1,150 @@
+:root {
+  color-scheme: dark;
+  --bg: #0f1115;
+  --panel: #171a21;
+  --panel-2: #1f232c;
+  --text: #e8eaed;
+  --muted: #9aa0aa;
+  --accent: #4c8dff;
+  --border: #2a2f3a;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+/* Shell: portrait = stacked with a bottom tab bar; landscape = side rail.
+   Driven purely by orientation so both iPad orientations behave. */
+#app {
+  display: flex;
+  flex-direction: column;
+}
+
+#view {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Each view fills the content area; only the active one is shown. */
+.view {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: auto;
+}
+.view.active {
+  display: block;
+}
+.view canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--muted);
+  padding: 2rem;
+  text-align: center;
+}
+.placeholder h2 {
+  margin: 0;
+  color: var(--text);
+}
+
+/* Navigation */
+#tabbar {
+  display: flex;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+#tabbar button {
+  flex: 1;
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.75rem 0.25rem;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+#tabbar button.active {
+  color: var(--accent);
+}
+
+/* Floating controls overlaid on a view (e.g. Cube toolbar) */
+.toolbar {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  background: rgba(23, 26, 33, 0.85);
+  backdrop-filter: blur(8px);
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  z-index: 5;
+}
+.toolbar button {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.toolbar button:active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+@media (orientation: landscape) {
+  #app {
+    flex-direction: row;
+  }
+  #tabbar {
+    flex-direction: column;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    padding-bottom: 0;
+    padding-left: env(safe-area-inset-left);
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 84px;
+  }
+  #tabbar button {
+    flex: 0 0 auto;
+  }
+}
