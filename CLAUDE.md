@@ -18,13 +18,20 @@ screen and work offline.
 ```bash
 npm run dev        # Vite dev server (localhost = secure context, so camera works)
 npm run build      # tsc typecheck + vite build → dist/
-npm run preview     # serve the built dist/ locally
+npm run preview    # serve the built dist/ locally
 npm run typecheck  # tsc --noEmit only
+npm test           # tsx test/*.ts — see below
 ```
 
-No test runner is set up yet. When cube-logic tests are added, prefer a
-solved-state round-trip check (a move applied four times, or a sexy-move six
-times, returns to solved) as the correctness oracle for the model.
+Tests are plain `tsx` scripts under `test/` (no framework), each `process.exit`s
+non-zero on failure. They encode the correctness oracles that must never
+regress: `roundtrip` (100 random scrambles → our 3D turn convention matches
+cube-solver, so scramble+solution == solved; plus X⁴/X X′/sexy-move identities),
+`worker-smoke` (the solver worker actually solves both a move sequence and a
+facelet string, and rejects invalid facelets), `validate` (1000 solvable cubes
+accepted, unsolvable ones rejected), `stats` (WCA averaging + DNF rules), and
+`classify` (center-anchored colour classifier on synthetic colours). Add a test
+here for any new cube-logic invariant.
 
 ## Architecture
 
@@ -49,13 +56,32 @@ order** (9 per face) — the format the Kociemba solver expects.
 Layout is **CSS-only responsive** (`@media (orientation: …)` in `src/style.css`),
 no JS breakpoint logic.
 
-### Planned milestones (build order)
+### Milestones (all shipped)
 
-M1 virtual cube ✅ · M2 solver (Web Worker) · M3 timer + WCA scrambles + stats ·
-M4 camera scanning. The solver and scanner both build on M1's shared model and
-animation queue. **When picking the solver library, confirm with Fernando** —
-the choice is `min2phase` (GPL, best quality, auto-uses a Worker) vs `cube-solver`
-(MIT, TypeScript-native, well-maintained). Both take the URFDLB facelet string.
+M1 virtual cube · M2 solver · M3 timer · M4 scan — all done.
+
+### Solving (two engines, both in the worker)
+
+The worker (`src/solver/solver.worker.ts`) hosts two solvers because they take
+different inputs:
+- **cube-solver** (MIT) — solves from a *move sequence* and generates WCA
+  scrambles. Used by the Solve tab and Timer. Tables init eagerly at boot.
+- **cubejs** (MIT) — solves from a *54-char facelet string*. Used by the Scan
+  tab. Inits lazily on first facelet solve.
+
+**Critical:** a facelet string is ALWAYS run through `validateFacelets`
+(`src/core/validate.ts`) before cubejs — an unsolvable cube makes the two-phase
+search loop *forever*, which would wedge the worker. `min2phase` was considered
+but cube-solver+cubejs cover both input shapes with no cubing.js dependency.
+
+### Scan (`src/scan/`)
+
+`scanView.ts` is a cube-net editor (tap-to-paint) that is the single source of
+truth and the camera's correction grid. `camera.ts` does `getUserMedia`, samples
+9 trimmed-mean patches per face from the guide square, and classifies colours by
+nearest **center anchor** in HSV (self-calibrating to lighting). Real-world
+colour accuracy is device/lighting dependent — tune `colorDist`/sampling against
+captures from an actual device; the correction grid is the safety net.
 
 ### Key constraints
 

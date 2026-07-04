@@ -10,12 +10,12 @@ Built for personal use as an alternative to ad-laden mobile cube apps.
 ## Features
 
 - **Virtual cube** — an interactive 3D cube (rotate freely, animated face turns). ✅
-- **Solver** — enter a scrambled state, get a near-optimal step-by-step solution
-  with animated playback. *(in progress)*
-- **Timer + stats** — WCA scrambles, inspection, ao5/ao12, PB tracking, saved
-  locally. *(planned)*
-- **Camera scan** — point the camera at each face to read sticker colors and
-  build the cube state. *(planned)*
+- **Solver** — enter/generate a scramble, get a near-optimal step-by-step
+  solution with animated playback. ✅
+- **Timer + stats** — WCA scrambles, 15s inspection, ao5/ao12, PB tracking,
+  +2/DNF penalties, saved locally. ✅
+- **Scan** — tap-to-paint a cube net, or point the camera at each face to read
+  the sticker colors, then solve. ✅
 
 ## Tech
 
