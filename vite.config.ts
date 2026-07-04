@@ -12,6 +12,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
+      workbox: {
+        // Precache all build output (incl. the solver worker chunk) so the app
+        // — and offline solving — works with no network.
+        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,wasm}'],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+      },
       manifest: {
         name: '3×3 Cube',
         short_name: '3×3 Cube',

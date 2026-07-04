@@ -1,18 +1,13 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { FACE_COLORS, type Face, type Move } from '../core/cube.ts'
-
-// Maps each face to the world axis its layer rotates about, the coordinate that
-// selects that layer (−1/0/+1), and the sign of a clockwise (dir=1) turn as
-// seen from outside the cube.
-const FACE_AXIS: Record<Face, { axis: 'x' | 'y' | 'z'; layer: number; sign: number }> = {
-  U: { axis: 'y', layer: 1, sign: -1 },
-  D: { axis: 'y', layer: -1, sign: 1 },
-  R: { axis: 'x', layer: 1, sign: -1 },
-  L: { axis: 'x', layer: -1, sign: 1 },
-  F: { axis: 'z', layer: 1, sign: -1 },
-  B: { axis: 'z', layer: -1, sign: 1 },
-}
+import {
+  CUBIE_COORDS,
+  faceByMat,
+  angleForMove,
+  applyMovesInstant,
+  readFacelets,
+} from './cubeLogic.ts'
 
 const BLACK = 0x101014
 const CUBIE_SIZE = 0.94
@@ -27,7 +22,8 @@ type Anim = {
   cubies: THREE.Object3D[]
 }
 
-/** Renders and animates an interactive 3×3 cube inside a container element. */
+/** Renders and animates an interactive 3×3 cube inside a container element.
+ *  Turn/facelet logic lives in cubeLogic.ts so it stays GPU-free and testable. */
 export class Cube3D {
   private renderer: THREE.WebGLRenderer
   private scene: THREE.Scene
@@ -51,7 +47,6 @@ export class Cube3D {
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
     this.controls.enablePan = false
-    this.controls.enableZoom = true
     this.controls.minDistance = 5
     this.controls.maxDistance = 14
     this.controls.rotateSpeed = 0.9
@@ -74,34 +69,24 @@ export class Cube3D {
     requestAnimationFrame(this.loop)
   }
 
-  /** Build the 27 cubies with per-face sticker colours. */
   private buildCubies() {
     const geometry = new THREE.BoxGeometry(CUBIE_SIZE, CUBIE_SIZE, CUBIE_SIZE)
-    for (let x = -1; x <= 1; x++) {
-      for (let y = -1; y <= 1; y++) {
-        for (let z = -1; z <= 1; z++) {
-          if (x === 0 && y === 0 && z === 0) continue // hidden core
-          // BoxGeometry material order: +x, −x, +y, −y, +z, −z.
-          const faceOf = (cond: boolean, f: Face) =>
-            new THREE.MeshStandardMaterial({
-              color: cond ? FACE_COLORS[f] : BLACK,
-              roughness: 0.45,
-              metalness: 0.0,
-            })
-          const materials = [
-            faceOf(x === 1, 'R'),
-            faceOf(x === -1, 'L'),
-            faceOf(y === 1, 'U'),
-            faceOf(y === -1, 'D'),
-            faceOf(z === 1, 'F'),
-            faceOf(z === -1, 'B'),
-          ]
-          const cubie = new THREE.Mesh(geometry, materials)
-          cubie.position.set(x, y, z)
-          this.group.add(cubie)
-          this.cubies.push(cubie)
-        }
-      }
+    for (const [x, y, z] of CUBIE_COORDS) {
+      const fbm = faceByMat(x, y, z)
+      const materials = fbm.map(
+        (f: Face | null) =>
+          new THREE.MeshStandardMaterial({
+            color: f ? FACE_COLORS[f] : BLACK,
+            roughness: 0.45,
+            metalness: 0.0,
+          }),
+      )
+      const cubie = new THREE.Mesh(geometry, materials)
+      cubie.position.set(x, y, z)
+      cubie.userData.home = new THREE.Vector3(x, y, z)
+      cubie.userData.faceByMat = fbm
+      this.group.add(cubie)
+      this.cubies.push(cubie)
     }
   }
 
@@ -110,14 +95,24 @@ export class Cube3D {
     this.queue.push(...moves)
   }
 
+  /** Apply moves instantly (no animation) — used to set up a scrambled state. */
+  applyInstant(moves: Move[]) {
+    this.queue = []
+    this.anim = null
+    applyMovesInstant(this.group, this.cubies, moves)
+  }
+
+  /** Current cube state as a 54-char URFDLB facelet string. */
+  getFacelets(): string {
+    return readFacelets(this.cubies)
+  }
+
   /** Instantly reset to a solved cube, cancelling any animation. */
   reset() {
     this.queue = []
     this.anim = null
-    for (const c of this.cubies) this.group.remove(c)
-    this.cubies = []
-    // Rebuild from scratch so orientations/positions are pristine.
     for (const child of [...this.group.children]) this.group.remove(child)
+    this.cubies = []
     this.buildCubies()
   }
 
@@ -128,14 +123,12 @@ export class Cube3D {
   private beginNext() {
     const move = this.queue.shift()
     if (!move) return
-    const { axis, layer, sign } = FACE_AXIS[move.face]
+    const { axis, layer, angle } = angleForMove(move)
     const pivot = new THREE.Group()
     this.group.add(pivot)
     const cubies = this.cubies.filter((c) => Math.round(c.position[axis]) === layer)
     for (const c of cubies) pivot.attach(c)
-    const quarter = (Math.PI / 2) * sign
-    const to = move.dir === 2 ? quarter * 2 : quarter * move.dir
-    this.anim = { pivot, axis, from: 0, to, start: performance.now(), cubies }
+    this.anim = { pivot, axis, from: 0, to: angle, start: performance.now(), cubies }
   }
 
   private finishAnim() {
@@ -144,8 +137,7 @@ export class Cube3D {
     pivot.rotation[axis] = to
     pivot.updateMatrixWorld(true)
     for (const c of cubies) {
-      this.group.attach(c) // reparent, preserving world transform
-      // Snap to the integer lattice so layer selection stays exact.
+      this.group.attach(c)
       c.position.x = Math.round(c.position.x)
       c.position.y = Math.round(c.position.y)
       c.position.z = Math.round(c.position.z)
@@ -183,6 +175,18 @@ export class Cube3D {
   /** Call when the view becomes visible again to force a correct resize. */
   onShown() {
     this.resize()
+  }
+
+  pause() {
+    this.running = false
+  }
+
+  resume() {
+    if (!this.running) {
+      this.running = true
+      this.resize()
+      requestAnimationFrame(this.loop)
+    }
   }
 
   dispose() {

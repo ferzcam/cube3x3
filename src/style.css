@@ -60,6 +60,109 @@ body {
   touch-action: none;
 }
 
+.canvas-host {
+  position: absolute;
+  inset: 0;
+}
+
+/* Solve view: cube + control panel; portrait stacks, landscape splits. */
+.solve-layout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+.solve-layout .solve-canvas {
+  position: relative;
+  flex: 1 1 55%;
+  min-height: 0;
+}
+.solve-layout .panel {
+  flex: 0 0 auto;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow: auto;
+  max-height: 45%;
+}
+@media (orientation: landscape) {
+  .solve-layout {
+    flex-direction: row;
+  }
+  .solve-layout .solve-canvas {
+    flex: 1 1 auto;
+  }
+  .solve-layout .panel {
+    flex: 0 0 300px;
+    max-height: none;
+    border-top: none;
+    border-left: 1px solid var(--border);
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.panel textarea {
+  width: 100%;
+  resize: vertical;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9rem;
+}
+.btn-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.panel button {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  flex: 1;
+}
+.panel button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.panel button:active {
+  filter: brightness(1.15);
+}
+.status {
+  font-size: 0.85rem;
+  color: var(--muted);
+  min-height: 1.2em;
+}
+.solution {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text);
+  word-spacing: 0.15em;
+}
+
 .placeholder {
   height: 100%;
   display: flex;
